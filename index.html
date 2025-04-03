@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhà Sách Trực Tuyến - Phiên Bản Siêu Cấp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        /* Sử dụng font Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+            background-color: #f8fafc; /* Slightly lighter gray */
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; border: 2px solid #e2e8f0; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Hiệu ứng cho modal & sidebar */
+        .modal-hidden, .sidebar-hidden { display: none; opacity: 0; }
+        .modal-visible { display: flex; opacity: 1; } /* flex for modal */
+        .sidebar-visible { display: block; opacity: 1; } /* block for sidebar */
+
+        .modal-content, .sidebar-content { transition: transform 0.3s ease-out, opacity 0.3s ease-out; }
+        .modal-hidden .modal-content { transform: scale(0.9); opacity: 0; }
+        .modal-visible .modal-content { transform: scale(1); opacity: 1; }
+
+        .sidebar-hidden .sidebar-content { transform: translateX(100%); } /* Slide out right */
+        .sidebar-visible .sidebar-content { transform: translateX(0); }
+
+        .overlay-hidden { opacity: 0; pointer-events: none; }
+        .overlay-visible { opacity: 1; pointer-events: auto; }
+        .overlay { transition: opacity 0.3s ease-in-out; }
+
+
+        /* Hiệu ứng cho chatbot */
+        .chatbot-hidden { transform: scale(0.9) translateY(30px) translateX(20px); opacity: 0; visibility: hidden; transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.2s ease-out, visibility 0s linear 0.3s; }
+        .chatbot-visible { transform: scale(1) translateY(0) translateX(0); opacity: 1; visibility: visible; transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.3s ease-in; }
+
+        /* Style cho nút yêu thích */
+        .wishlist-btn.active i { fill: #ec4899; color: #ec4899; } /* Màu hồng đậm hơn */
+        .wishlist-btn.active:hover i { fill: #db2777; color: #db2777; }
+
+        /* Style cho rating stars */
+        .star-rating { color: #f59e0b; } /* Màu vàng cam */
+        .star-rating i { transition: transform 0.1s ease-in-out; }
+        .star-rating:hover i { transform: scale(1.1); }
+        .review-stars i { cursor: pointer; transition: color 0.2s, fill 0.2s, transform 0.1s; color: #d1d5db; /* gray-300 */ fill: none; }
+        .review-stars i.selected, .review-stars i.hovered { fill: #f59e0b; color: #f59e0b; }
+        .review-stars:hover i { transform: scale(1.1); }
+
+
+        /* Loading Skeleton */
+        .skeleton {
+            background-color: #e2e8f0; /* gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .skeleton-img { height: 16rem; /* h-64 */ width: 100%; }
+        .skeleton-title { height: 1.25rem; /* h-5 */ width: 75%; margin-bottom: 0.5rem; /* mb-2 */ }
+        .skeleton-text { height: 0.875rem; /* h-3.5 */ width: 90%; margin-bottom: 0.5rem; /* mb-2 */ }
+        .skeleton-text-sm { height: 0.75rem; /* h-3 */ width: 60%; margin-bottom: 0.75rem; /* mb-3 */ }
+        .skeleton-price { height: 1.5rem; /* h-6 */ width: 40%; margin-top: auto; margin-bottom: 0.75rem; /* mb-3 */ }
+        .skeleton-button { height: 2.5rem; /* h-10 */ width: 100%; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Chatbot typing indicator */
+        .typing-indicator span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin: 0 1px;
+            background-color: #94a3b8; /* gray-400 */
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: typing 1s infinite;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.1s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.2s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-3px); opacity: 1; }
+        }
+
+        /* Custom scrollbar for modals/sidebars if needed */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #a1a1aa; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #71717a; }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px); /* Start off screen */
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 100;
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.215, 0.610, 0.355, 1), opacity 0.4s ease-out;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .toast.success { background-color: #10b981; color: white; } /* Emerald 500 */
+        .toast.error { background-color: #ef4444; color: white; } /* Red 500 */
+        .toast.info { background-color: #3b82f6; color: white; } /* Blue 500 */
+        .toast.warning { background-color: #f59e0b; color: white; } /* Amber 500 */
+
+        /* Tab styling */
+        .tab-button.active {
+            color: #4f46e5; /* indigo-600 */
+            border-bottom: 2px solid #4f46e5;
+        }
+        .tab-button {
+            border-bottom: 2px solid transparent;
+        }
+
+        /* Required field indicator */
+        .required-label::after {
+            content: '*';
+            color: #ef4444; /* red-500 */
+            margin-left: 4px;
+        }
+
+        /* AOS animation delay helper */
+        [data-aos][data-aos-delay="150"] { transition-delay: .15s; }
+        [data-aos][data-aos-delay="250"] { transition-delay: .25s; }
+        [data-aos][data-aos-delay="350"] { transition-delay: .35s; }
+
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+    <header class="bg-white shadow-lg sticky top-0 z-50 transition-all duration-300">
+        <nav class="container mx-auto px-4 lg:px-6 py-3 flex justify-between items-center">
+            <a href="#" class="text-3xl font-extrabold text-indigo-600 flex items-center gap-2 hover:text-indigo-700 transition-colors">
+                <i data-lucide="book-open-check" class="w-8 h-8"></i>
+                <span>Sách Hay Pro+</span>
+            </a>
+
+            <div class="relative w-full max-w-xl hidden md:block">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Tìm kiếm hàng ngàn cuốn sách..."
+                    class="w-full pl-5 pr-12 py-2.5 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm hover:shadow-md text-sm"
+                    onkeyup="if(event.key==='Enter') handleSearch()"
+                >
+                <button onclick="handleSearch()" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2.5 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1" aria-label="Tìm kiếm">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-4 sm:space-x-6">
+                <a href="#" class="text-slate-600 hover:text-indigo-600 transition duration-300 font-medium hidden lg:inline-block">Trang Chủ</a>
+                <a href="#categories" class="text-slate-600 hover:text-indigo-600 transition duration-300 font-medium hidden lg:inline-block">Thể Loại</a>
+                <a href="#books" class="text-slate-600 hover:text-indigo-600 transition duration-300 font-medium hidden lg:inline-block">Sách</a>
+
+                <div id="user-section" class="flex items-center space-x-4 sm:space-x-6">
+                    <div id="logged-out-view" class="flex items-center space-x-2">
+                        <button onclick="openModal('loginModal')" class="text-slate-600 hover:text-indigo-600 transition duration-300 font-medium text-sm sm:text-base">Đăng nhập</button>
+                        <span class="text-slate-300 hidden sm:inline">|</span>
+                        <button onclick="openModal('signupModal')" class="bg-indigo-600 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-700 transition duration-300 hidden sm:inline-block">Đăng ký</button>
+                    </div>
+                    <div id="logged-in-view" class="hidden items-center space-x-3">
+                        <span class="text-sm font-medium text-slate-700 hidden lg:inline">Chào, <span id="username-display">User</span>!</span>
+                        <button onclick="openModal('profileModal')" class="relative text-slate-600 hover:text-indigo-600 transition duration-300" title="Tài khoản của tôi" aria-label="Tài khoản của tôi">
+                            <i data-lucide="user-circle-2" class="w-6 h-6"></i>
+                        </button>
+                        <button onclick="logoutUser()" class="text-slate-600 hover:text-red-600 transition duration-300" title="Đăng xuất" aria-label="Đăng xuất">
+                             <i data-lucide="log-out" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="toggleWishlistModal()" class="relative text-slate-600 hover:text-pink-600 transition duration-300" title="Danh sách yêu thích" aria-label="Mở danh sách yêu thích">
+                    <i data-lucide="heart" class="w-6 h-6"></i>
+                    <span id="wishlist-count" class="absolute -top-2 -right-2 bg-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center opacity-0 transition-opacity duration-300">0</span>
+                </button>
+                <button onclick="toggleCart()" class="relative text-slate-600 hover:text-indigo-600 transition duration-300" title="Giỏ hàng" aria-label="Mở giỏ hàng">
+                    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center opacity-0 transition-opacity duration-300">0</span>
+                </button>
+            </div>
+        </nav>
+        <div class="container mx-auto px-4 pb-3 md:hidden">
+             <div class="relative w-full">
+                <input
+                    type="text"
+                    id="searchInputMobile"
+                    placeholder="Tìm kiếm sách..."
+                    class="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm text-sm"
+                    onkeyup="if(event.key==='Enter') handleSearchMobile()"
+                >
+                <button onclick="handleSearchMobile()" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" aria-label="Tìm kiếm">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 lg:px-6 py-8">
+
+        <section class="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-10 sm:p-16 rounded-2xl shadow-2xl mb-16 text-center relative overflow-hidden" data-aos="fade-up">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-5 leading-tight drop-shadow-lg">Thế Giới Sách Trong Tầm Tay</h1>
+            <p class="text-lg sm:text-xl mb-8 max-w-3xl mx-auto text-indigo-100">Khám phá, tìm đọc và sở hữu những cuốn sách làm thay đổi cuộc đời bạn.</p>
+            <a href="#books" class="bg-white text-indigo-700 font-semibold px-8 py-3 rounded-full hover:bg-slate-100 transition duration-300 shadow-lg text-lg transform hover:scale-105 inline-flex items-center gap-2">
+                <i data-lucide="book-marked" class="w-5 h-5"></i> Khám Phá Ngay
+            </a>
+        </section>
+
+        <section id="deal-of-the-day" class="mb-16 bg-gradient-to-r from-amber-400 to-yellow-500 p-8 rounded-xl shadow-lg text-slate-900" data-aos="fade-left">
+            <h2 class="text-3xl font-bold mb-6 text-center flex items-center justify-center gap-3">
+                <i data-lucide="calendar-check-2" class="w-8 h-8"></i> Ưu Đãi Đặc Biệt Hôm Nay!
+            </h2>
+            <div id="deal-content" class="flex flex-col md:flex-row items-center gap-8 justify-center">
+                <div class="skeleton h-40 w-full md:w-1/3 rounded-lg"></div>
+                <div class="w-full md:w-2/3 space-y-4">
+                    <div class="skeleton h-8 w-3/4 rounded"></div>
+                    <div class="skeleton h-4 w-1/2 rounded"></div>
+                    <div class="skeleton h-12 w-full rounded"></div>
+                    <div class="skeleton h-10 w-1/3 rounded-full"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="categories" class="mb-16" data-aos="fade-right">
+            <h2 class="text-3xl font-semibold mb-8 border-l-4 border-indigo-500 pl-4 flex items-center gap-3">
+                <i data-lucide="layout-grid" class="w-7 h-7 text-indigo-500"></i>
+                Khám Phá Theo Thể Loại
+            </h2>
+            <div id="category-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
+                ${Array(6).fill().map(() => `
+                    <div class="skeleton h-24 rounded-lg"></div>
+                `).join('')}
+            </div>
+        </section>
+
+        <section id="featured-books" class="mb-16" data-aos="fade-up">
+            <div class="flex border-b border-slate-300 mb-8">
+                <button class="tab-button active px-6 py-3 text-lg font-semibold transition-colors" data-tab="new-arrivals" onclick="switchTab(this, 'new-arrivals')">
+                    <i data-lucide="sparkles" class="inline-block mr-2 w-5 h-5"></i> Mới Nhất
+                </button>
+                <button class="tab-button px-6 py-3 text-lg font-semibold text-slate-500 hover:text-indigo-600 transition-colors" data-tab="best-sellers" onclick="switchTab(this, 'best-sellers')">
+                    <i data-lucide="trending-up" class="inline-block mr-2 w-5 h-5"></i> Bán Chạy
+                </button>
+            </div>
+            <div id="new-arrivals-content" class="tab-content grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                ${Array(4).fill().map(() => `
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden p-4">
+                        <div class="skeleton skeleton-img mb-4"></div>
+                        <div class="skeleton skeleton-title"></div>
+                        <div class="skeleton skeleton-text-sm"></div>
+                        <div class="skeleton skeleton-text"></div>
+                        <div class="skeleton skeleton-price"></div>
+                        <div class="skeleton skeleton-button"></div>
+                    </div>
+                `).join('')}
+            </div>
+             <div id="best-sellers-content" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                ${Array(4).fill().map(() => `
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden p-4">
+                        <div class="skeleton skeleton-img mb-4"></div>
+                        <div class="skeleton skeleton-title"></div>
+                        <div class="skeleton skeleton-text-sm"></div>
+                        <div class="skeleton skeleton-text"></div>
+                        <div class="skeleton skeleton-price"></div>
+                        <div class="skeleton skeleton-button"></div>
+                    </div>
+                `).join('')}
+            </div>
+        </section>
+
+        <section id="books" class="mb-12" data-aos="fade-up" data-aos-delay="200">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 p-4 bg-white rounded-lg shadow">
+                <h2 class="text-2xl md:text-3xl font-semibold flex items-center gap-3 text-slate-700">
+                     <i data-lucide="book-text" class="w-7 h-7 text-indigo-500"></i>
+                     Tất Cả Sách
+                </h2>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div class="relative w-full sm:w-52">
+                        <select id="filterGenre" onchange="applyFiltersAndSort()" class="w-full px-4 py-2 border border-slate-300 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer text-sm shadow-sm" aria-label="Lọc theo thể loại">
+                            <option value="all">Tất cả thể loại</option>
+                            </select>
+                        <i data-lucide="chevron-down" class="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                    </div>
+                    <div class="relative w-full sm:w-52">
+                        <select id="sortBy" onchange="applyFiltersAndSort()" class="w-full px-4 py-2 border border-slate-300 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer text-sm shadow-sm" aria-label="Sắp xếp theo">
+                            <option value="default">Mặc định</option>
+                            <option value="price_asc">Giá tăng dần</option>
+                            <option value="price_desc">Giá giảm dần</option>
+                            <option value="rating_desc">Đánh giá cao</option>
+                            <option value="title_asc">Tên A-Z</option>
+                            <option value="newest">Mới nhất</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                    </div>
+                </div>
+            </div>
+            <div id="book-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 min-h-[500px]">
+                 <div id="loading-skeletons" class="col-span-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                     ${Array(8).fill().map(() => `
+                         <div class="bg-white rounded-lg shadow-md overflow-hidden p-4">
+                             <div class="skeleton skeleton-img mb-4"></div>
+                             <div class="skeleton skeleton-title"></div>
+                             <div class="skeleton skeleton-text-sm"></div>
+                             <div class="skeleton skeleton-text"></div>
+                             <div class="skeleton skeleton-price"></div>
+                             <div class="skeleton skeleton-button"></div>
+                         </div>
+                     `).join('')}
+                 </div>
+                 </div>
+            <div id="no-results" class="text-center text-slate-500 mt-12 hidden col-span-full py-10">
+                <i data-lucide="frown" class="w-16 h-16 mx-auto mb-4 text-slate-400"></i>
+                <p class="text-xl font-medium">Ôi không!</p>
+                <p class="text-lg">Không tìm thấy cuốn sách nào phù hợp.</p>
+                <p class="text-sm mt-2">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm xem sao nhé?</p>
+            </div>
+            <div id="pagination" class="mt-12 flex justify-center items-center space-x-2">
+                 </div>
+        </section>
+
+        <section id="reading-challenge" class="mb-16 bg-white p-8 rounded-xl shadow-lg" data-aos="zoom-in">
+             <h2 class="text-3xl font-semibold mb-6 text-center text-purple-700 flex items-center justify-center gap-3">
+                 <i data-lucide="target" class="w-8 h-8"></i> Thử Thách Đọc Sách <span id="challenge-year">2025</span>
+             </h2>
+             <div id="challenge-content" class="text-center max-w-xl mx-auto">
+                 <div id="challenge-logged-out">
+                     <p class="text-slate-600 mb-4">Hãy <button onclick="openModal('loginModal')" class="text-indigo-600 font-semibold hover:underline">đăng nhập</button> hoặc <button onclick="openModal('signupModal')" class="text-indigo-600 font-semibold hover:underline">đăng ký</button> để tham gia thử thách đọc sách!</p>
+                     <i data-lucide="book-lock" class="w-12 h-12 mx-auto text-slate-400"></i>
+                 </div>
+                 <div id="challenge-logged-in" class="hidden">
+                     <div id="challenge-setup" class="hidden space-y-4">
+                         <p class="text-slate-700">Bạn muốn đọc bao nhiêu cuốn sách trong năm nay?</p>
+                         <div class="flex justify-center items-center gap-4">
+                            <input type="number" id="challenge-goal-input" min="1" value="12" class="w-24 px-3 py-2 border border-slate-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <button onclick="setReadingChallengeGoal()" class="bg-purple-600 text-white px-6 py-2 rounded-md font-medium hover:bg-purple-700 transition">Đặt Mục Tiêu</button>
+                         </div>
+                     </div>
+                     <div id="challenge-progress" class="hidden space-y-4">
+                        <p class="text-slate-700 text-lg">Mục tiêu của bạn: <strong id="challenge-goal" class="text-purple-700">0</strong> cuốn sách.</p>
+                        <p class="text-slate-700 text-lg">Đã đọc: <strong id="challenge-completed" class="text-green-600">0</strong> cuốn sách.</p>
+                        <div class="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+                            <div id="challenge-progress-bar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-4 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                        </div>
+                        <p id="challenge-percentage" class="text-sm font-medium text-slate-600">0% Hoàn thành</p>
+                        <button onclick="resetReadingChallenge()" class="text-sm text-slate-500 hover:text-red-600 transition underline">Đặt lại thử thách</button>
+                     </div>
+                 </div>
+             </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 py-12 mt-16">
+        <div class="container mx-auto px-4 lg:px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="col-span-1 md:col-span-1">
+                <h4 class="text-lg font-semibold mb-4 text-white">Về Sách Hay Pro+</h4>
+                <p class="text-sm leading-relaxed">Mang đến tri thức và niềm vui đọc sách cho mọi người. Khám phá hàng ngàn đầu sách chọn lọc thuộc mọi lĩnh vực.</p>
+            </div>
+            <div>
+                <h4 class="text-lg font-semibold mb-4 text-white">Liên kết</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-white transition flex items-center gap-2"><i data-lucide="home" class="w-4 h-4"></i> Trang Chủ</a></li>
+                    <li><a href="#categories" class="hover:text-white transition flex items-center gap-2"><i data-lucide="layout-grid" class="w-4 h-4"></i> Thể Loại</a></li>
+                    <li><a href="#books" class="hover:text-white transition flex items-center gap-2"><i data-lucide="book-open" class="w-4 h-4"></i> Sách</a></li>
+                    <li><a href="#" onclick="alert('Chức năng đang phát triển!')" class="hover:text-white transition flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i> Chính sách</a></li>
+                    <li><a href="#" onclick="alert('Chức năng đang phát triển!')" class="hover:text-white transition flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4"></i> Điều khoản</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-lg font-semibold mb-4 text-white">Liên hệ</h4>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-indigo-400"></i> Hà Nội, Việt Nam</li>
+                    <li class="flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4 text-indigo-400"></i> 1800-1234 (Miễn phí)</li>
+                    <li class="flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4 text-indigo-400"></i> support@sachhaypro.ai</li>
+                </ul>
+            </div>
+            <div>
+                 <h4 class="text-lg font-semibold mb-4 text-white">Mạng xã hội</h4>
+                 <div class="flex space-x-4">
+                    <a href="#" class="text-slate-400 hover:text-white transition" title="Facebook"><i data-lucide="facebook" class="w-6 h-6"></i></a>
+                    <a href="#" class="text-slate-400 hover:text-white transition" title="Twitter"><i data-lucide="twitter" class="w-6 h-6"></i></a>
+                    <a href="#" class="text-slate-400 hover:text-white transition" title="Instagram"><i data-lucide="instagram" class="w-6 h-6"></i></a>
+                    <a href="#" class="text-slate-400 hover:text-white transition" title="Youtube"><i data-lucide="youtube" class="w-6 h-6"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="container mx-auto px-4 lg:px-6 text-center text-slate-500 border-t border-slate-700 pt-6 mt-8 text-xs">
+            &copy; <span id="footer-year">2025</span> Nhà Sách Trực Tuyến Pro+. Một sản phẩm được hỗ trợ bởi AI.
+        </div>
+    </footer>
+
+    <div id="cart-sidebar" class="fixed inset-0 z-[60] sidebar-hidden overlay-hidden overlay bg-black/60" aria-modal="true" role="dialog" aria-labelledby="cart-heading">
+        <div class="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-xl sidebar-content flex flex-col custom-scrollbar">
+            <div class="flex justify-between items-center p-5 border-b bg-slate-50 sticky top-0">
+                <h3 id="cart-heading" class="text-xl font-semibold flex items-center gap-2 text-slate-700">
+                    <i data-lucide="shopping-bag" class="text-indigo-600"></i> Giỏ Hàng (<span id="cart-item-count-header">0</span>)
+                </h3>
+                <button onclick="toggleCart()" class="text-slate-500 hover:text-slate-800 transition-colors p-1 rounded-full hover:bg-slate-200" aria-label="Đóng giỏ hàng">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="cart-items" class="flex-grow p-5 overflow-y-auto">
+                <div class="text-center text-slate-500 cart-empty-message py-10">
+                    <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-4 text-slate-400"></i>
+                    <p>Giỏ hàng trống trơn.</p>
+                    <button onclick="toggleCart(); document.getElementById('books').scrollIntoView();" class="mt-4 text-indigo-600 font-semibold hover:underline text-sm">
+                        Bắt đầu mua sắm nào!
+                    </button>
+                </div>
+                </div>
+            <div class="p-5 border-t bg-slate-50 sticky bottom-0">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-lg font-semibold text-slate-700">Tổng cộng:</span>
+                    <span id="cart-total" class="text-xl font-bold text-indigo-600">0₫</span>
+                </div>
+                <button onclick="handleCheckout()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg" id="checkout-button" disabled>
+                    <i data-lucide="credit-card" class="w-5 h-5"></i> Tiến Hành Thanh Toán
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bookDetailModal" class="fixed inset-0 z-[70] items-center justify-center p-4 modal-hidden overlay overlay-hidden bg-black/70" aria-modal="true" role="dialog" aria-labelledby="modal-book-title-header">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden modal-content flex flex-col">
+             <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
+                 <h3 id="modal-book-title-header" class="text-xl font-semibold text-slate-800 truncate pr-4">Chi tiết sách</h3>
+                 <button onclick="closeModal('bookDetailModal')" class="text-slate-400 hover:text-slate-700 transition p-1 rounded-full hover:bg-slate-100" aria-label="Đóng chi tiết sách">
+                     <i data-lucide="x" class="w-6 h-6"></i>
+                 </button>
+             </div>
+             <div class="flex flex-col md:flex-row overflow-y-auto custom-scrollbar flex-grow">
+                 <div class="w-full md:w-1/3 p-6 flex-shrink-0 border-b md:border-b-0 md:border-r">
+                     <img id="modal-book-img" src="" alt="[Ảnh bìa sách]" class="w-full h-auto object-contain rounded-md shadow-lg mb-6 max-h-96" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x600/e2e8f0/94a3b8?text=Ảnh+không+tải+được';">
+                     <div class="space-y-3 text-sm">
+                         <p><strong class="font-medium text-slate-600">Tác giả:</strong> <span id="modal-book-author" class="text-slate-800">N/A</span></p>
+                         <p><strong class="font-medium text-slate-600">Thể loại:</strong> <span id="modal-book-genre" class="text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full text-xs font-medium">N/A</span></p>
+                         <p><strong class="font-medium text-slate-600">Đánh giá:</strong> <span id="modal-book-rating" class="star-rating flex items-center gap-1">N/A</span></p>
+                         <p><strong class="font-medium text-slate-600">Giá:</strong> <span id="modal-book-price" class="text-2xl font-bold text-red-600">0₫</span></p>
+                     </div>
+                     <div class="mt-6 space-y-3">
+                        <button id="modal-add-to-cart-btn" onclick="" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 flex items-center justify-center gap-2 shadow hover:shadow-md">
+                            <i data-lucide="shopping-cart" class="w-5 h-5"></i> Thêm vào giỏ hàng
+                        </button>
+                        <button id="modal-wishlist-btn" onclick="" class="w-full bg-pink-100 text-pink-700 py-2.5 rounded-lg font-semibold hover:bg-pink-200 transition duration-300 flex items-center justify-center gap-2 wishlist-btn">
+                            <i data-lucide="heart" class="w-5 h-5"></i> <span id="modal-wishlist-text">Thêm vào Yêu thích</span>
+                        </button>
+                     </div>
+                 </div>
+                 <div class="w-full md:w-2/3 p-6 flex-grow flex flex-col">
+                     <h4 id="modal-book-title-main" class="text-2xl font-bold mb-3 text-slate-800">Tên sách</h4>
+                     <div class="mb-6 prose prose-sm max-w-none text-slate-600 leading-relaxed">
+                         <p id="modal-book-description">Mô tả chi tiết về cuốn sách...</p>
+                     </div>
+                     <hr class="my-6">
+                     <div class="flex-grow flex flex-col min-h-0">
+                         <div class="flex justify-between items-center mb-4">
+                            <h5 class="text-lg font-semibold text-slate-700">Đánh giá (<span id="review-count">0</span>)</h5>
+                            <button onclick="openReviewModal()" id="add-review-button" class="bg-green-500 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i data-lucide="plus-circle" class="inline-block mr-1 w-4 h-4"></i> Viết đánh giá
+                            </button>
+                         </div>
+                         <div id="reviews-list" class="space-y-4 overflow-y-auto flex-grow custom-scrollbar pr-2">
+                             <p class="text-slate-500 text-sm italic no-reviews-message">Chưa có đánh giá nào cho cuốn sách này.</p>
+                             </div>
+                     </div>
+                 </div>
+             </div>
+        </div>
+    </div>
+
+    <div id="wishlistModal" class="fixed inset-0 z-[70] items-center justify-center p-4 modal-hidden overlay overlay-hidden bg-black/70" aria-modal="true" role="dialog" aria-labelledby="wishlist-heading">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden modal-content flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
+                <h3 id="wishlist-heading" class="text-xl font-semibold flex items-center gap-2 text-pink-600">
+                    <i data-lucide="heart" class="fill-current"></i> Danh Sách Yêu Thích (<span id="wishlist-item-count-header">0</span>)
+                </h3>
+                <button onclick="toggleWishlistModal()" class="text-slate-400 hover:text-slate-700 transition p-1 rounded-full hover:bg-slate-100" aria-label="Đóng danh sách yêu thích">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="wishlist-items" class="p-6 overflow-y-auto custom-scrollbar flex-grow">
+                <div class="text-center text-slate-500 wishlist-empty-message py-10">
+                    <i data-lucide="heart-crack" class="w-12 h-12 mx-auto mb-4 text-slate-400"></i>
+                    <p>Danh sách yêu thích của bạn đang trống.</p>
+                    <button onclick="toggleWishlistModal(); document.getElementById('books').scrollIntoView();" class="mt-4 text-indigo-600 font-semibold hover:underline text-sm">
+                        Tìm sách yêu thích ngay!
+                    </button>
+                </div>
+                </div>
+        </div>
+    </div>
+
+    <div id="loginModal" class="fixed inset-0 z-[70] items-center justify-center p-4 modal-hidden overlay overlay-hidden bg-black/70" aria-modal="true" role="dialog" aria-labelledby="login-heading">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden modal-content">
+            <div class="flex justify-between items-center p-5 border-b bg-slate-50">
+                <h3 id="login-heading" class="text-xl font-semibold text-slate-700">Đăng Nhập</h3>
+                <button onclick="closeModal('loginModal')" class="text-slate-400 hover:text-slate-700 transition p-1 rounded-full hover:bg-slate-100" aria-label="Đóng đăng nhập">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="login-form" class="p-6 space-y-4">
+                <p id="login-error" class="text-red-500 text-sm hidden"></p>
+                <div>
+                    <label for="login-email" class="block text-sm font-medium text-slate-700 mb-1 required-label">Email</label>
+                    <input type="email" id="login-email" name="email" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="you@example.com">
+                </div>
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-slate-700 mb-1 required-label">Mật khẩu</label>
+                    <input type="password" id="login-password" name="password" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300">Đăng Nhập</button>
+                <p class="text-sm text-center text-slate-500">
+                    Chưa có tài khoản? <button type="button" onclick="closeModal('loginModal'); openModal('signupModal');" class="font-medium text-indigo-600 hover:underline">Đăng ký ngay</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="signupModal" class="fixed inset-0 z-[70] items-center justify-center p-4 modal-hidden overlay overlay-hidden bg-black/70" aria-modal="true" role="dialog" aria-labelledby="signup-heading">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden modal-content">
+            <div class="flex justify-between items-center p-5 border-b bg-slate-50">
+                <h3 id="signup-heading" class="text-xl font-semibold text-slate-700">Đăng Ký Tài Khoản</h3>
+                <button onclick="closeModal('signupModal')" class="text-slate-400 hover:text-slate-700 transition p-1 rounded-full hover:bg-slate-100" aria-label="Đóng đăng ký">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="signup-form" class="p-6 space-y-4">
+                <p id="signup-error" class="text-red-500 text-sm hidden"></p>
+                <div>
+                    <label for="signup-name" class="block text-sm font-medium text-slate-700 mb-1 required-label">Tên hiển thị</label>
+                    <input type="text" id="signup-name" name="name" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Tên của bạn">
+                </div>
+                <div>
+                    <label for="signup-email" class="block text-sm font-medium text-slate-700 mb-1 required-label">Email</label>
+                    <input type="email" id="signup-email" name="email" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="you@example.com">
+                </div>
+                <div>
+                    <label for="signup-password" class="block text-sm font-medium text-slate-700 mb-1 required-label">Mật khẩu</label>
+                    <input type="password" id="signup-password" name="password" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Ít nhất 6 ký tự">
+                </div>
+                 <div>
+                    <label for="signup-confirm-password" class="block text-sm font-medium text-slate-700 mb-1 required-label">Xác nhận mật khẩu</label>
+                    <input type="password" id="signup-confirm-password" name="confirmPassword" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Nhập lại mật khẩu">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300">Đăng Ký</button>
+                 <p class="text-sm text-center text-slate-500">
+                    Đã có tài khoản? <button type="button" onclick="closeModal('signupModal'); openModal('loginModal');" class="font-medium text-indigo-600 hover:underline">Đăng nhập</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="profileModal" class="fixed inset-0 z-[70] items-center justify-center p-4 modal-hidden overlay overlay-hidden bg-black/70" aria-modal="true" role="dialog" aria-labelledby="profile-heading">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden modal-content flex flex-col">
+            <div class="flex justify-between items-center p-5 border-b bg-slate-50 sticky top-0">
+                <h3 id="profile-heading" class="text-xl font-semibold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="user" class="text-indigo-600"></i> Hồ Sơ Của Tôi
+                </h3>
+                <button onclick="closeModal('profileModal')" class="text-slate-400 hover:text-slate-700 transition p-1 rounded-full hover:bg-slate-100" aria-label="Đóng hồ sơ">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-8">
+                <section>
+                    <h4 class="text-lg font-semibold mb-4 text-slate-600">Thông tin cá nhân</h4>
+                    <div class="bg-slate-100 p-4 rounded-md space-y-2 text-sm">
+                        <p><strong>Tên:</strong> <span id="profile-name">N/A</span></p>
+                        <p><strong>Email:</strong> <span id="profile-email">N/A</span></p>
+                        <p><strong>Ngày tham gia:</strong> <span id="profile-joined">N/A</span></p>
+                        <button onclick="alert('Chức năng chỉnh sửa hồ sơ đang phát triển!')" class="text-indigo-600 hover:underline text-xs font-medium">Chỉnh sửa</button>
+                    </div>
+                </section>
+
+                <section>
+                    <h4 class="text-lg font-semibold mb-4 text-slate-600">Lịch sử đơn hàng</h4>
+                    <div id="order-history-list" class="space-y-3 max-h-60 overflow-y-auto custom-scrollbar border rounded-md p-4 bg-slate-50">
+                        <p class="text-slate-500 text-sm italic order-history-empty">Bạn chưa có đơn hàng nào.</p>
+                        </div>
+                </section>
+
+                <section>
+                    <h4 class="text-lg font-semibold mb-4 text-slate-600">Tiến độ Thử thách Đọc sách</h4>
+                    <div id="profile-challenge-summary" class="bg-purple-50 p-4 rounded-md text-sm">
+                        <p class="text-slate-500 italic challenge-not-set">Bạn chưa đặt mục tiêu đọc sách cho năm nay.</p>
+                         <div class="challenge-details hidden space-y-2">
+                            <p><strong>Mục tiêu:</strong> <span id="profile-challenge-goal">0</span> cuốn</p>
+                            <p><strong>Đã đọc:</strong> <span id="profile-challenge-completed">0</span> cuốn</p>
+                            <div class="w-full bg-slate-200 rounded-full h-2.5">
+                                <div id="profile-challenge-progress-bar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-2.5 rounded-full" style="width: 0%;"></div>
+                            </div>
+                            <p id="profile-challenge-percentage" class="text-xs font-medium text-slate-600">0% Hoàn thành</p>
+                            <a href="#reading-challenge" onclick="closeModal('profileModal')" class="text-indigo-600 hover:underline text-xs font-medium block mt-2">Xem chi tiết thử thách</a>
+                         </div>
+                    </div>
+                </section>
+            </div>
+            <div class="p-4 border-t bg-slate-50 flex justify-end">
+                 <button onclick="logoutUser(); closeModal('profileModal');" class="bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition text-sm">
+                     Đăng xuất
+                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reviewModal" class="fixed inset-0 z-[80] items-center justify-center p-4 modal-hidden overlay overlay-hidden bg-black/70" aria-modal="true" role="dialog" aria-labelledby="review-heading">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden modal-content">
+            <div class="flex justify-between items-center p-5 border-b bg-slate-50">
+                <h3 id="review-heading" class="text-xl font-semibold text-slate-700">Viết Đánh Giá</h3>
+                <button onclick="closeModal('reviewModal')" class="text-slate-400 hover:text-slate-700 transition p-1 rounded-full hover:bg-slate-100" aria-label="Đóng đánh giá">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="review-form" class="p-6 space-y-4">
+                 <input type="hidden" id="review-book-id">
+                 <p id="review-error" class="text-red-500 text-sm hidden"></p>
+                 <div class="text-center">
+                     <p class="text-sm font-medium text-slate-700 mb-2 required-label">Bạn đánh giá cuốn sách này thế nào?</p>
+                     <div id="review-stars-input" class="review-stars flex justify-center text-3xl text-slate-300 space-x-1 mb-4" data-rating="0">
+                         <i data-lucide="star" data-value="1" class="cursor-pointer"></i>
+                         <i data-lucide="star" data-value="2" class="cursor-pointer"></i>
+                         <i data-lucide="star" data-value="3" class="cursor-pointer"></i>
+                         <i data-lucide="star" data-value="4" class="cursor-pointer"></i>
+                         <i data-lucide="star" data-value="5" class="cursor-pointer"></i>
+                     </div>
+                 </div>
+                 <div>
+                    <label for="review-comment" class="block text-sm font-medium text-slate-700 mb-1">Bình luận của bạn (tùy chọn)</label>
+                    <textarea id="review-comment" name="comment" rows="4" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Chia sẻ cảm nhận của bạn về cuốn sách..."></textarea>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition duration-300">Gửi Đánh Giá</button>
+            </form>
+        </div>
+    </div>
+
+    <button id="chatbot-toggle" onclick="toggleChatbot()" class="fixed bottom-6 right-6 bg-gradient-to-br from-indigo-600 to-purple-600 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center z-[90] transform hover:scale-110 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" aria-label="Mở chatbot">
+        <i data-lucide="message-circle" class="w-8 h-8"></i>
+    </button>
+
+    <div id="chatbot-window" class="fixed bottom-24 right-6 w-80 sm:w-96 bg-white rounded-xl shadow-2xl z-[90] chatbot-hidden flex flex-col overflow-hidden border border-slate-200" style="max-height: 60vh;">
+        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+            <h4 class="font-semibold text-sm flex items-center gap-2">
+                <i data-lucide="bot" class="w-5 h-5"></i> Trợ lý Sách Hay Pro+
+            </h4>
+            <button onclick="toggleChatbot()" class="text-indigo-100 hover:text-white transition p-1 rounded-full hover:bg-white/20" aria-label="Đóng chatbot">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div id="chatbot-messages" class="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar">
+            <div class="flex justify-start">
+                <div class="bg-slate-100 text-slate-800 rounded-lg rounded-bl-none p-3 max-w-[80%] text-sm shadow-sm">
+                    Xin chào! Tôi là trợ lý ảo của Sách Hay Pro+. Tôi có thể giúp bạn tìm sách, kiểm tra giá, hoặc gợi ý sách theo thể loại. Bạn cần gì hôm nay?
+                </div>
+            </div>
+        </div>
+        <div id="typing-indicator" class="px-4 py-2 text-sm text-slate-500 hidden">
+            <div class="typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="p-3 border-t border-slate-200 bg-slate-50">
+            <div class="relative flex items-center">
+                <input type="text" id="chatbot-input" placeholder="Nhập tin nhắn..." class="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent text-sm shadow-sm">
+                <button onclick="sendMessage()" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-indigo-500" aria-label="Gửi tin nhắn">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // --- DATA ---
+        // (Simulated book data - expand significantly)
+        const allBooks = [
+             { id: 1, title: "Nhà Giả Kim", author: "Paulo Coelho", price: 79000, rating: 4.8, genre: "Phiêu lưu", img: "https://placehold.co/400x600/a5b4fc/1e293b?text=Nhà+Giả+Kim", description: "Cuốn sách kinh điển về hành trình theo đuổi vận mệnh của chàng chăn cừu Santiago.", stock: 15, publishedDate: "2020-05-15" },
+             { id: 2, title: "Đắc Nhân Tâm", author: "Dale Carnegie", price: 99000, rating: 4.9, genre: "Kỹ năng sống", img: "https://placehold.co/400x600/a78bfa/1e293b?text=Đắc+Nhân+Tâm", description: "Nghệ thuật giao tiếp và ứng xử hiệu quả để thành công trong cuộc sống.", stock: 25, publishedDate: "2019-11-20" },
+             { id: 3, title: "Tôi Thấy Hoa Vàng Trên Cỏ Xanh", author: "Nguyễn Nhật Ánh", price: 65000, rating: 4.7, genre: "Văn học Việt Nam", img: "https://placehold.co/400x600/f472b6/1e293b?text=Hoa+Vàng+Cỏ+Xanh", description: "Câu chuyện tuổi thơ trong sáng, hồn nhiên và đầy cảm xúc tại một làng quê Việt Nam.", stock: 30, publishedDate: "2022-01-10" },
+             { id: 4, title: "Muôn Kiếp Nhân Sinh", author: "Nguyên Phong", price: 150000, rating: 4.9, genre: "Tâm linh", img: "https://placehold.co/400x600/facc15/1e293b?text=Muôn+Kiếp+Nhân+Sinh", description: "Những câu chuyện về luật nhân quả và luân hồi qua nhiều kiếp sống.", stock: 10, publishedDate: "2021-08-01" },
+             { id: 5, title: "Sapiens: Lược Sử Loài Người", author: "Yuval Noah Harari", price: 250000, rating: 4.8, genre: "Lịch sử", img: "https://placehold.co/400x600/6ee7b7/1e293b?text=Sapiens", description: "Khám phá lịch sử tiến hóa và phát triển của loài người từ thời tiền sử đến hiện đại.", stock: 8, publishedDate: "2023-03-05" },
+             { id: 6, title: "Cafe Cùng Tony", author: "Tony Buổi Sáng", price: 88000, rating: 4.6, genre: "Truyền cảm hứng", img: "https://placehold.co/400x600/93c5fd/1e293b?text=Cafe+Cùng+Tony", description: "Những bài học và chia sẻ thực tế về khởi nghiệp, học tập và cuộc sống.", stock: 22, publishedDate: "2018-06-25" },
+             { id: 7, title: "Rừng Na Uy", author: "Haruki Murakami", price: 120000, rating: 4.7, genre: "Văn học Nhật Bản", img: "https://placehold.co/400x600/c4b5fd/1e293b?text=Rừng+Na+Uy", description: "Câu chuyện tình yêu, mất mát và trưởng thành của những người trẻ tuổi ở Tokyo thập niên 60.", stock: 18, publishedDate: "2022-09-12" },
+             { id: 8, title: "Bố Già", author: "Mario Puzo", price: 180000, rating: 4.9, genre: "Tiểu thuyết", img: "https://placehold.co/400x600/fda4af/1e293b?text=Bố+Già", description: "Thế giới ngầm đầy quyền lực và bạo lực của gia đình mafia Corleone.", stock: 5, publishedDate: "2020-12-01" },
+             { id: 9, title: "Hoàng Tử Bé", author: "Antoine de Saint-Exupéry", price: 55000, rating: 4.9, genre: "Thiếu nhi", img: "https://placehold.co/400x600/fcd34d/1e293b?text=Hoàng+Tử+Bé", description: "Câu chuyện triết lý sâu sắc dành cho mọi lứa tuổi về tình bạn, tình yêu và ý nghĩa cuộc sống.", stock: 40, publishedDate: "2023-01-20" },
+             { id: 10, title: "Thép Đã Tôi Thế Đấy", author: "Nikolai Ostrovsky", price: 95000, rating: 4.5, genre: "Văn học Nga", img: "https://placehold.co/400x600/86efac/1e293b?text=Thép+Đã+Tôi", description: "Câu chuyện về nghị lực phi thường của Pavel Korchagin trong công cuộc xây dựng xã hội mới.", stock: 12, publishedDate: "2019-03-10" },
+             { id: 11, title: "Atomic Habits", author: "James Clear", price: 135000, rating: 4.8, genre: "Phát triển bản thân", img: "https://placehold.co/400x600/bfdbfe/1e293b?text=Atomic+Habits", description: "Phương pháp xây dựng thói quen tốt và loại bỏ thói quen xấu một cách hiệu quả.", stock: 35, publishedDate: "2022-11-05" },
+             { id: 12, title: "Để Hội Nhập (Tái Bản)", author: "Nguyễn Phi Vân", price: 110000, rating: 4.6, genre: "Kinh doanh", img: "https://placehold.co/400x600/ddd6fe/1e293b?text=Để+Hội+Nhập", description: "Cẩm nang thực tế cho các bạn trẻ Việt Nam trên con đường hội nhập quốc tế.", stock: 9, publishedDate: "2023-05-18" },
+             { id: 13, title: "Harry Potter và Hòn Đá Phù Thủy", author: "J.K. Rowling", price: 160000, rating: 5.0, genre: "Fantasy", img: "https://placehold.co/400x600/fecaca/1e293b?text=Harry+Potter+1", description: "Khởi đầu cuộc phiêu lưu kỳ diệu của cậu bé phù thủy Harry Potter tại trường Hogwarts.", stock: 50, publishedDate: "2021-07-15" },
+             { id: 14, title: "Đi Tìm Lẽ Sống", author: "Viktor Frankl", price: 70000, rating: 4.9, genre: "Tâm lý học", img: "https://placehold.co/400x600/fef08a/1e293b?text=Đi+Tìm+Lẽ+Sống", description: "Hành trình tìm kiếm ý nghĩa cuộc sống ngay cả trong những hoàn cảnh khắc nghiệt nhất.", stock: 11, publishedDate: "2020-02-28" },
+             { id: 15, title: "Người Tù Khổ Sai", author: "Henri Charrière", price: 140000, rating: 4.7, genre: "Tiểu sử", img: "https://placehold.co/400x600/bbf7d0/1e293b?text=Người+Tù+Khổ+Sai", description: "Câu chuyện có thật về cuộc vượt ngục phi thường và hành trình tìm tự do.", stock: 7, publishedDate: "2022-04-09" },
+             { id: 16, title: "Factfulness", author: "Hans Rosling", price: 190000, rating: 4.8, genre: "Khoa học", img: "https://placehold.co/400x600/a5f3fc/1e293b?text=Factfulness", description: "Tại sao chúng ta thường hiểu sai về thế giới và tại sao mọi thứ lại tốt đẹp hơn bạn nghĩ.", stock: 14, publishedDate: "2023-08-22" },
+             { id: 17, title: "Cuộc Sống Không Giới Hạn", author: "Nick Vujicic", price: 85000, rating: 4.7, genre: "Truyền cảm hứng", img: "https://placehold.co/400x600/e0e7ff/1e293b?text=Cuộc+Sống+Không+GH", description: "Câu chuyện đầy nghị lực của người đàn ông không tay không chân.", stock: 20, publishedDate: "2017-10-11" },
+             { id: 18, title: "Trăm Năm Cô Đơn", author: "Gabriel Garcia Marquez", price: 175000, rating: 4.9, genre: "Văn học Latin", img: "https://placehold.co/400x600/ffedd5/1e293b?text=Trăm+Năm+Cô+Đơn", description: "Sử thi về dòng họ Buendía và ngôi làng Macondo huyền thoại.", stock: 6, publishedDate: "2021-01-30" },
+             { id: 19, title: "Tội Ác và Hình Phạt", author: "Fyodor Dostoevsky", price: 210000, rating: 4.8, genre: "Văn học Nga", img: "https://placehold.co/400x600/dcfce7/1e293b?text=Tội+Ác+Hình+Phạt", description: "Cuộc đấu tranh nội tâm giằng xé của Raskolnikov sau khi gây án.", stock: 9, publishedDate: "2022-06-14" },
+             { id: 20, title: "Trên Đường Băng", author: "Tony Buổi Sáng", price: 90000, rating: 4.6, genre: "Truyền cảm hứng", img: "https://placehold.co/400x600/ccfbf1/1e293b?text=Trên+Đường+Băng", description: "Những câu chuyện truyền cảm hứng về tuổi trẻ, khát vọng và hành động.", stock: 28, publishedDate: "2020-09-03" },
+             { id: 21, title: "Không Gia Đình", author: "Hector Malot", price: 75000, rating: 4.7, genre: "Thiếu nhi", img: "https://placehold.co/400x600/cffafe/1e293b?text=Không+Gia+Đình", description: "Hành trình phiêu bạt đầy gian truân nhưng cũng ấm áp tình người của cậu bé Rémi.", stock: 33, publishedDate: "2021-04-25" },
+             { id: 22, title: "Bí Mật Của Nước", author: "Masaru Emoto", price: 105000, rating: 4.5, genre: "Tâm linh", img: "https://placehold.co/400x600/e0f2fe/1e293b?text=Bí+Mật+Của+Nước", description: "Khám phá những thông điệp ẩn chứa trong tinh thể nước và sức mạnh của ý niệm.", stock: 13, publishedDate: "2019-08-19" },
+             { id: 23, title: "Giết Con Chim Nhại", author: "Harper Lee", price: 115000, rating: 4.9, genre: "Văn học Mỹ", img: "https://placehold.co/400x600/ede9fe/1e293b?text=Giết+Con+Chim+Nhại", description: "Câu chuyện về lòng dũng cảm, sự công bằng và định kiến chủng tộc ở miền Nam nước Mỹ.", stock: 16, publishedDate: "2022-12-08" },
+             { id: 24, title: "Suối Nguồn", author: "Ayn Rand", price: 280000, rating: 4.7, genre: "Triết học", img: "https://placehold.co/400x600/fce7f3/1e293b?text=Suối+Nguồn", description: "Tiểu thuyết về chủ nghĩa cá nhân, sáng tạo và cuộc đấu tranh chống lại chủ nghĩa tập thể.", stock: 4, publishedDate: "2023-06-29" },
+         ];
+
+        let cart = [];
+        let wishlist = [];
+        let currentUser = null; // { name: '...', email: '...', joined: '...' }
+        let userReviews = {}; // { bookId: [{ rating: 5, comment: '...', user: '...', date: '...' }, ...], ... }
+        let orderHistory = []; // [{ id: '...', date: '...', total: 150000, items: [{...}, ...] }, ...]
+        let readingChallenge = { goal: 0, completedBooks: [] }; // completedBooks: [bookId1, bookId2, ...]
+
+        const ITEMS_PER_PAGE = 8;
+        let currentPage = 1;
+        let filteredAndSortedBooks = [...allBooks];
+
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * Formats a number as Vietnamese currency (₫).
+         * @param {number} number - The number to format.
+         * @returns {string} Formatted currency string.
+         */
+        const formatCurrency = (number) => {
+            if (typeof number !== 'number') return '0₫';
+            return number.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+        };
+
+        /**
+         * Generates star icons based on rating.
+         * @param {number} rating - The rating value (0-5).
+         * @param {boolean} interactive - Whether the stars should be interactive (for review input).
+         * @returns {string} HTML string for star icons.
+         */
+        const generateStars = (rating, interactive = false) => {
+            let starsHTML = '';
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+
+            for (let i = 0; i < fullStars; i++) {
+                starsHTML += `<i data-lucide="star" class="w-4 h-4 fill-current ${interactive ? 'cursor-pointer' : ''}" data-value="${i + 1}"></i>`;
+            }
+            if (halfStar) {
+                starsHTML += `<i data-lucide="star-half" class="w-4 h-4 fill-current ${interactive ? 'cursor-pointer' : ''}" data-value="${fullStars + 1}"></i>`;
+            }
+            for (let i = 0; i < emptyStars; i++) {
+                starsHTML += `<i data-lucide="star" class="w-4 h-4 text-slate-300 ${interactive ? 'cursor-pointer' : ''}" data-value="${fullStars + (halfStar ? 1 : 0) + i + 1}"></i>`;
+            }
+             // If interactive, wrap in the review-stars class
+             if (interactive) {
+                 return `<div class="review-stars flex text-3xl text-slate-300 space-x-1" data-rating="0">${starsHTML.replace(/w-4 h-4/g, 'w-6 h-6')}</div>`; // Use larger stars for input
+             }
+
+            return `<span class="star-rating flex items-center gap-0.5">${starsHTML}</span>`;
+        };
+
+
+        /**
+         * Shows a toast notification.
+         * @param {string} message - The message to display.
+         * @param {'success' | 'error' | 'info' | 'warning'} type - The type of toast.
+         * @param {number} duration - Duration in milliseconds.
+         */
+        const showToast = (message, type = 'info', duration = 3000) => {
+            const toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) return;
+
+            const toastId = `toast-${Date.now()}`;
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+
+            // Add Lucide icon based on type
+            let iconType = 'info';
+            if (type === 'success') iconType = 'check-circle';
+            if (type === 'error') iconType = 'alert-circle';
+            if (type === 'warning') iconType = 'alert-triangle';
+
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', iconType);
+            icon.classList.add('inline-block', 'mr-2', 'w-4', 'h-4', 'align-middle');
+            toast.prepend(icon); // Add icon before text
+
+            toastContainer.appendChild(toast);
+            lucide.createIcons(); // Re-render icons
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Animate out and remove
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.addEventListener('transitionend', () => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, { once: true });
+            }, duration);
+        };
+
+        // --- LOCAL STORAGE FUNCTIONS ---
+
+        const saveToLocalStorage = (key, data) => {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error(`Error saving ${key} to localStorage:`, e);
+                showToast(`Không thể lưu ${key.replace('App', '')}. Bộ nhớ có thể đã đầy.`, 'error');
+            }
+        };
+
+        const loadFromLocalStorage = (key, defaultValue = null) => {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultValue;
+            } catch (e) {
+                console.error(`Error loading ${key} from localStorage:`, e);
+                showToast(`Lỗi khi tải ${key.replace('App', '')}. Sử dụng giá trị mặc định.`, 'warning');
+                return defaultValue;
+            }
+        };
+
+        // --- CORE UI FUNCTIONS ---
+
+        /**
+         * Renders a single book card.
+         * @param {object} book - The book object.
+         * @returns {string} HTML string for the book card.
+         */
+        const renderBookCard = (book) => {
+            const isInWishlist = wishlist.some(item => item.id === book.id);
+            const avgRating = calculateAverageRating(book.id); // Calculate average rating
+
+            return `
+                <div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col transition-transform duration-300 hover:shadow-xl hover:-translate-y-1" data-aos="fade-up" data-aos-delay="${(book.id % 4) * 100}">
+                    <div class="relative">
+                        <img src="${book.img}" alt="[Ảnh bìa sách] ${book.title}" class="w-full h-64 object-cover cursor-pointer" loading="lazy" onclick="openBookDetail(${book.id})" onerror="this.onerror=null; this.src='https://placehold.co/400x600/e2e8f0/94a3b8?text=Ảnh+lỗi';">
+                        <button
+                            class="absolute top-3 right-3 p-2 bg-white/80 rounded-full text-slate-600 hover:text-pink-500 hover:bg-white transition-all duration-200 wishlist-btn ${isInWishlist ? 'active' : ''}"
+                            onclick="toggleWishlist(${book.id}, this)"
+                            title="${isInWishlist ? 'Xóa khỏi Yêu thích' : 'Thêm vào Yêu thích'}"
+                            aria-label="${isInWishlist ? 'Xóa khỏi Yêu thích' : 'Thêm vào Yêu thích'}"
+                            >
+                            <i data-lucide="heart" class="w-5 h-5 transition-colors duration-200"></i>
+                        </button>
+                        ${book.stock < 10 && book.stock > 0 ? `<span class="absolute bottom-2 left-2 bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-0.5 rounded">Sắp hết hàng</span>` : ''}
+                        ${book.stock === 0 ? `<span class="absolute bottom-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded">Hết hàng</span>` : ''}
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="font-semibold text-lg mb-1 truncate hover:text-indigo-600 cursor-pointer" onclick="openBookDetail(${book.id})" title="${book.title}">${book.title}</h3>
+                        <p class="text-sm text-slate-500 mb-2 truncate" title="${book.author}">${book.author}</p>
+                        <div class="flex items-center mb-3 text-sm">
+                            ${generateStars(avgRating)}
+                            <span class="ml-2 text-slate-500">(${getReviewCount(book.id)})</span>
+                        </div>
+                        <p class="text-xl font-bold text-red-600 mb-4 mt-auto">${formatCurrency(book.price)}</p>
+                        <button
+                            onclick="addToCart(${book.id})"
+                            class="w-full bg-indigo-100 text-indigo-700 py-2 rounded-lg font-semibold hover:bg-indigo-200 transition duration-300 text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            ${book.stock === 0 ? 'disabled' : ''}
+                            >
+                            <i data-lucide="shopping-cart" class="w-4 h-4"></i> ${book.stock === 0 ? 'Hết hàng' : 'Thêm vào giỏ'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+
+        /**
+         * Renders the list of books based on current filters, sort, and page.
+         */
+        const renderBooks = () => {
+            const bookListElement = document.getElementById('book-list');
+            const loadingSkeletons = document.getElementById('loading-skeletons');
+            const noResultsElement = document.getElementById('no-results');
+            if (!bookListElement || !loadingSkeletons || !noResultsElement) return;
+
+            // Show skeletons initially
+            loadingSkeletons.classList.remove('hidden');
+            bookListElement.innerHTML = loadingSkeletons.outerHTML; // Keep skeletons while loading
+            noResultsElement.classList.add('hidden');
+
+            // Simulate loading delay for visual effect
+            setTimeout(() => {
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                const endIndex = startIndex + ITEMS_PER_PAGE;
+                const booksToRender = filteredAndSortedBooks.slice(startIndex, endIndex);
+
+                loadingSkeletons.classList.add('hidden'); // Hide skeletons after delay
+
+                if (booksToRender.length === 0) {
+                    bookListElement.innerHTML = ''; // Clear content
+                    noResultsElement.classList.remove('hidden');
+                } else {
+                    bookListElement.innerHTML = booksToRender.map(renderBookCard).join('');
+                    noResultsElement.classList.add('hidden');
+                }
+
+                renderPagination();
+                lucide.createIcons(); // Important: Re-render Lucide icons after updating DOM
+                AOS.refresh(); // Refresh AOS to detect new elements
+            }, 500); // 500ms delay
+        };
+
+        /**
+         * Renders pagination buttons.
+         */
+        const renderPagination = () => {
+            const paginationElement = document.getElementById('pagination');
+            if (!paginationElement) return;
+
+            const totalPages = Math.ceil(filteredAndSortedBooks.length / ITEMS_PER_PAGE);
+            paginationElement.innerHTML = ''; // Clear existing buttons
+
+            if (totalPages <= 1) return; // No pagination needed for 1 or 0 pages
+
+            // Previous Button
+            paginationElement.innerHTML += `
+                <button
+                    onclick="changePage(${currentPage - 1})"
+                    class="px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === 1 ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600 bg-white hover:bg-indigo-50 shadow-sm'}"
+                    ${currentPage === 1 ? 'disabled' : ''}
+                    aria-label="Trang trước"
+                >
+                    <i data-lucide="chevron-left" class="w-4 h-4 inline-block"></i> Trước
+                </button>
+            `;
+
+            // Page Number Buttons (simplified for brevity, could add ellipsis logic)
+            for (let i = 1; i <= totalPages; i++) {
+                paginationElement.innerHTML += `
+                    <button
+                        onclick="changePage(${i})"
+                        class="px-3 py-1 rounded-md text-sm font-medium transition-colors shadow-sm ${i === currentPage ? 'bg-indigo-600 text-white scale-110' : 'bg-white text-slate-600 hover:bg-indigo-50'}"
+                        aria-label="Trang ${i}" ${i === currentPage ? 'aria-current="page"' : ''}
+                    >
+                        ${i}
+                    </button>
+                `;
+            }
+
+            // Next Button
+            paginationElement.innerHTML += `
+                <button
+                    onclick="changePage(${currentPage + 1})"
+                    class="px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === totalPages ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600 bg-white hover:bg-indigo-50 shadow-sm'}"
+                    ${currentPage === totalPages ? 'disabled' : ''}
+                    aria-label="Trang sau"
+                >
+                    Sau <i data-lucide="chevron-right" class="w-4 h-4 inline-block"></i>
+                </button>
+            `;
+
+            lucide.createIcons();
+        };
+
+        /**
+         * Changes the current page and re-renders books.
+         * @param {number} pageNumber - The page number to navigate to.
+         */
+        const changePage = (pageNumber) => {
+            const totalPages = Math.ceil(filteredAndSortedBooks.length / ITEMS_PER_PAGE);
+            if (pageNumber < 1 || pageNumber > totalPages) return; // Invalid page
+
+            currentPage = pageNumber;
+            renderBooks();
+             // Scroll to the top of the book list smoothly
+             document.getElementById('books')?.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        /**
+         * Applies selected filters and sorting, then re-renders books.
+         */
+        const applyFiltersAndSort = () => {
+            const genreFilter = document.getElementById('filterGenre')?.value || 'all';
+            const sortBy = document.getElementById('sortBy')?.value || 'default';
+            const searchTerm = (document.getElementById('searchInput')?.value || document.getElementById('searchInputMobile')?.value || '').toLowerCase();
+
+            // 1. Filter by Search Term
+            let books = allBooks.filter(book =>
+                book.title.toLowerCase().includes(searchTerm) ||
+                book.author.toLowerCase().includes(searchTerm) ||
+                book.genre.toLowerCase().includes(searchTerm)
+            );
+
+            // 2. Filter by Genre
+            if (genreFilter !== 'all') {
+                books = books.filter(book => book.genre === genreFilter);
+            }
+
+            // 3. Sort
+            switch (sortBy) {
+                case 'price_asc':
+                    books.sort((a, b) => a.price - b.price);
+                    break;
+                case 'price_desc':
+                    books.sort((a, b) => b.price - a.price);
+                    break;
+                case 'rating_desc':
+                    // Sort by average rating (descending), requires calculating average rating for each book
+                    books.sort((a, b) => calculateAverageRating(b.id) - calculateAverageRating(a.id));
+                    break;
+                case 'title_asc':
+                    books.sort((a, b) => a.title.localeCompare(b.title, 'vi'));
+                    break;
+                case 'newest':
+                     // Assuming higher ID means newer, or use publishedDate
+                     books.sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate));
+                    // books.sort((a, b) => b.id - a.id); // Alternative: sort by ID
+                    break;
+                case 'default':
+                default:
+                    // Default sort (e.g., by ID or original order)
+                    books.sort((a, b) => a.id - b.id);
+                    break;
+            }
+
+            filteredAndSortedBooks = books;
+            currentPage = 1; // Reset to first page after filtering/sorting
+            renderBooks();
+        };
+
+        /**
+         * Handles search input from both desktop and mobile.
+         */
+        const handleSearch = () => {
+            applyFiltersAndSort();
+        };
+        const handleSearchMobile = () => {
+             // Ensure mobile input value is used if desktop is hidden
+             const searchInputMobile = document.getElementById('searchInputMobile');
+             const searchInputDesktop = document.getElementById('searchInput');
+             if (searchInputMobile && searchInputDesktop) {
+                 searchInputDesktop.value = searchInputMobile.value; // Sync values if needed
+             }
+            applyFiltersAndSort();
+        };
+
+
+        /**
+         * Populates genre filter options.
+         */
+        const populateGenreFilter = () => {
+            const genreFilterElement = document.getElementById('filterGenre');
+            if (!genreFilterElement) return;
+
+            const genres = [...new Set(allBooks.map(book => book.genre))].sort((a, b) => a.localeCompare(b, 'vi'));
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre;
+                genreFilterElement.appendChild(option);
+            });
+        };
+
+        /**
+         * Renders category buttons.
+         */
+        const renderCategories = () => {
+            const categoryListElement = document.getElementById('category-list');
+            if (!categoryListElement) return;
+
+            const genres = [...new Set(allBooks.map(book => book.genre))].sort((a, b) => a.localeCompare(b, 'vi'));
+            // Define some icons for categories (can be expanded)
+            const genreIcons = {
+                "Phiêu lưu": "compass",
+                "Kỹ năng sống": "award",
+                "Văn học Việt Nam": "feather",
+                "Tâm linh": "sparkles", // Changed from 'moon-star'
+                "Lịch sử": "landmark",
+                "Truyền cảm hứng": "flame",
+                "Văn học Nhật Bản": "cherry", // Changed from 'torii'
+                "Tiểu thuyết": "book-marked",
+                "Thiếu nhi": "teddy-bear",
+                "Văn học Nga": "scroll-text", // Changed from 'russian-doll'
+                "Phát triển bản thân": "bar-chart-3", // Changed from 'brain-circuit'
+                "Kinh doanh": "briefcase",
+                "Fantasy": "wand-2", // Changed from 'castle'
+                "Tâm lý học": "brain",
+                "Tiểu sử": "user-check",
+                "Khoa học": "flask-conical",
+                "Văn học Mỹ": "flag",
+                "Triết học": "scale",
+                "Văn học Latin": "globe-2"
+            };
+
+            categoryListElement.innerHTML = genres.map((genre, index) => `
+                <button
+                    onclick="filterByCategory('${genre}')"
+                    class="flex flex-col items-center justify-center p-4 bg-white rounded-lg shadow-sm hover:shadow-lg hover:bg-indigo-50 transition-all duration-300 text-center group"
+                    data-aos="fade-up" data-aos-delay="${index * 50}"
+                >
+                    <i data-lucide="${genreIcons[genre] || 'book'}" class="w-8 h-8 mb-2 text-indigo-500 transition-transform duration-300 group-hover:scale-110"></i>
+                    <span class="text-sm font-medium text-slate-700 group-hover:text-indigo-700">${genre}</span>
+                </button>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        /**
+         * Filters books by category when a category button is clicked.
+         * @param {string} genre - The genre to filter by.
+         */
+        const filterByCategory = (genre) => {
+            const genreFilterElement = document.getElementById('filterGenre');
+            if (genreFilterElement) {
+                genreFilterElement.value = genre;
+            }
+            applyFiltersAndSort();
+            // Scroll to the book list
+            document.getElementById('books')?.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        /**
+        * Switches between tabs (e.g., New Arrivals, Best Sellers).
+        * @param {HTMLElement} clickedButton - The button element that was clicked.
+        * @param {string} tabId - The ID of the content tab to show.
+        */
+        const switchTab = (clickedButton, tabId) => {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            // Deactivate all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+                button.classList.add('text-slate-500', 'hover:text-indigo-600');
+                button.classList.remove('text-indigo-600', 'border-indigo-600'); // Ensure active styles are removed
+            });
+
+            // Show the selected tab content
+            const contentToShow = document.getElementById(`${tabId}-content`);
+            if (contentToShow) {
+                contentToShow.classList.remove('hidden');
+            }
+
+            // Activate the clicked button
+            clickedButton.classList.add('active');
+            clickedButton.classList.remove('text-slate-500', 'hover:text-indigo-600');
+            clickedButton.classList.add('text-indigo-600'); // Add active text color explicitly
+
+            AOS.refresh(); // Refresh AOS as content visibility changes
+        };
+
+        /** Renders New Arrivals books */
+        const renderNewArrivals = () => {
+            const container = document.getElementById('new-arrivals-content');
+            if (!container) return;
+            // Sort by publishedDate (most recent first) and take top 4
+            const newBooks = [...allBooks]
+                .sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate))
+                .slice(0, 4);
+            if (newBooks.length > 0) {
+                 container.innerHTML = newBooks.map(renderBookCard).join('');
+            } else {
+                container.innerHTML = '<p class="col-span-full text-center text-slate-500">Chưa có sách mới.</p>';
+            }
+            lucide.createIcons();
+        };
+
+        /** Renders Best Sellers books */
+        const renderBestSellers = () => {
+            const container = document.getElementById('best-sellers-content');
+            if (!container) return;
+            // Sort by rating (highest first) and take top 4
+            const bestBooks = [...allBooks]
+                .sort((a, b) => calculateAverageRating(b.id) - calculateAverageRating(a.id))
+                .slice(0, 4);
+             if (bestBooks.length > 0) {
+                container.innerHTML = bestBooks.map(renderBookCard).join('');
+            } else {
+                 container.innerHTML = '<p class="col-span-full text-center text-slate-500">Chưa có sách bán chạy.</p>';
+            }
+            lucide.createIcons();
+        };
+
+        /** Renders Deal of the Day */
+        const renderDealOfTheDay = () => {
+            const container = document.getElementById('deal-content');
+            if (!container) return;
+
+            // Simple logic: pick a random book with stock > 0
+            const availableBooks = allBooks.filter(book => book.stock > 0);
+            if (availableBooks.length === 0) {
+                container.innerHTML = '<p class="text-center text-slate-700 font-medium">Hôm nay không có ưu đãi đặc biệt nào. Quay lại sau nhé!</p>';
+                return;
+            }
+
+            const dealBook = availableBooks[Math.floor(Math.random() * availableBooks.length)];
+            const originalPrice = dealBook.price;
+            const discountPercentage = 15; // 15% off
+            const discountedPrice = Math.round(originalPrice * (1 - discountPercentage / 100));
+            const avgRating = calculateAverageRating(dealBook.id);
+
+            container.innerHTML = `
+                <div class="w-full md:w-1/3 flex justify-center" data-aos="zoom-in-right">
+                    <img src="${dealBook.img}" alt="${dealBook.title}" class="w-48 h-auto object-contain rounded-md shadow-lg" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/200x300/e2e8f0/94a3b8?text=Ảnh+lỗi';">
+                </div>
+                <div class="w-full md:w-2/3 text-center md:text-left space-y-3" data-aos="zoom-in-left" data-aos-delay="100">
+                    <h3 class="text-2xl font-bold text-slate-800">${dealBook.title}</h3>
+                    <p class="text-sm text-slate-700">bởi ${dealBook.author}</p>
+                    <div class="flex items-center justify-center md:justify-start gap-2">
+                         ${generateStars(avgRating)}
+                         <span class="text-sm text-slate-600">(${getReviewCount(dealBook.id)} đánh giá)</span>
+                    </div>
+                    <p class="text-lg">
+                        <span class="text-red-600 font-bold text-2xl">${formatCurrency(discountedPrice)}</span>
+                        <span class="text-slate-500 line-through ml-2">${formatCurrency(originalPrice)}</span>
+                        <span class="bg-red-100 text-red-700 text-xs font-semibold px-2 py-0.5 rounded ml-2">-${discountPercentage}%</span>
+                    </p>
+                    <p class="text-sm text-slate-600 italic">Nhanh tay! Ưu đãi chỉ có trong hôm nay.</p>
+                    <div class="pt-2">
+                        <button onclick="openBookDetail(${dealBook.id})" class="bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-semibold px-6 py-2.5 rounded-full hover:from-yellow-600 hover:to-amber-700 transition duration-300 shadow-md hover:shadow-lg transform hover:scale-105 inline-flex items-center gap-2">
+                            <i data-lucide="zap" class="w-5 h-5"></i> Xem Ngay
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        };
+
+
+        // --- MODAL FUNCTIONS ---
+
+        /**
+         * Opens a modal by its ID.
+         * @param {string} modalId - The ID of the modal element.
+         */
+        const openModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                // Close any other open modals first
+                document.querySelectorAll('.modal-visible').forEach(m => {
+                    if (m.id !== modalId) closeModal(m.id);
+                });
+                modal.classList.remove('modal-hidden', 'overlay-hidden');
+                modal.classList.add('modal-visible', 'overlay-visible');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                // Focus first focusable element in modal for accessibility
+                const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                if(focusableElements.length > 0) {
+                    focusableElements[0].focus();
+                }
+                // Add event listener for Escape key
+                document.addEventListener('keydown', handleEscKey);
+
+            }
+        };
+
+        /**
+         * Closes a modal by its ID.
+         * @param {string} modalId - The ID of the modal element.
+         */
+        const closeModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('modal-hidden', 'overlay-hidden');
+                modal.classList.remove('modal-visible', 'overlay-visible');
+                 // Check if any other modals/sidebars are open before restoring scroll
+                 const otherOpenModals = document.querySelectorAll('.modal-visible, .sidebar-visible');
+                 if (otherOpenModals.length === 0) {
+                    document.body.style.overflow = ''; // Restore background scrolling
+                 }
+                 // Remove event listener for Escape key
+                 document.removeEventListener('keydown', handleEscKey);
+            }
+        };
+
+        /**
+         * Handles the Escape key press to close the topmost modal/sidebar.
+         * @param {KeyboardEvent} event
+         */
+        const handleEscKey = (event) => {
+            if (event.key === 'Escape') {
+                // Find the topmost visible modal or sidebar (highest z-index or last added)
+                const openModals = Array.from(document.querySelectorAll('.modal-visible, .sidebar-visible'))
+                                        .sort((a, b) => parseInt(getComputedStyle(b).zIndex) - parseInt(getComputedStyle(a).zIndex));
+                if (openModals.length > 0) {
+                    const topModalId = openModals[0].id;
+                    if (topModalId.includes('Modal')) {
+                         closeModal(topModalId);
+                    } else if (topModalId.includes('sidebar')) {
+                         // Assuming sidebar toggle functions exist
+                         if (topModalId === 'cart-sidebar') toggleCart();
+                         // Add other sidebars if any
+                    } else if (topModalId === 'chatbot-window') {
+                        toggleChatbot(); // Close chatbot if it's open
+                    }
+                }
+            }
+        };
+
+
+        /**
+         * Opens the book detail modal and populates it with book data.
+         * @param {number} bookId - The ID of the book to display.
+         */
+        const openBookDetail = (bookId) => {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+
+            const modal = document.getElementById('bookDetailModal');
+            if (!modal) return;
+
+            // Populate basic info
+            modal.querySelector('#modal-book-title-header').textContent = book.title;
+            modal.querySelector('#modal-book-title-main').textContent = book.title;
+            modal.querySelector('#modal-book-img').src = book.img;
+            modal.querySelector('#modal-book-img').alt = `[Ảnh bìa sách] ${book.title}`;
+            modal.querySelector('#modal-book-author').textContent = book.author;
+            modal.querySelector('#modal-book-genre').textContent = book.genre;
+            modal.querySelector('#modal-book-price').textContent = formatCurrency(book.price);
+            modal.querySelector('#modal-book-description').textContent = book.description || 'Chưa có mô tả chi tiết cho cuốn sách này.';
+
+            // Update rating
+            const avgRating = calculateAverageRating(bookId);
+            modal.querySelector('#modal-book-rating').innerHTML = generateStars(avgRating);
+
+            // Update Add to Cart button
+            const addToCartBtn = modal.querySelector('#modal-add-to-cart-btn');
+            addToCartBtn.onclick = () => addToCart(bookId);
+             addToCartBtn.disabled = book.stock === 0;
+             if(book.stock === 0) {
+                 addToCartBtn.innerHTML = `<i data-lucide="x-circle" class="w-5 h-5"></i> Hết hàng`;
+                 addToCartBtn.classList.add('bg-slate-400', 'cursor-not-allowed');
+                 addToCartBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+             } else {
+                 addToCartBtn.innerHTML = `<i data-lucide="shopping-cart" class="w-5 h-5"></i> Thêm vào giỏ hàng`;
+                 addToCartBtn.classList.remove('bg-slate-400', 'cursor-not-allowed');
+                 addToCartBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+             }
+
+
+            // Update Wishlist button
+            const wishlistBtn = modal.querySelector('#modal-wishlist-btn');
+            const wishlistText = modal.querySelector('#modal-wishlist-text');
+            const isInWishlist = wishlist.some(item => item.id === bookId);
+            wishlistBtn.classList.toggle('active', isInWishlist);
+            wishlistBtn.onclick = () => {
+                toggleWishlist(bookId, wishlistBtn); // Pass the button itself
+                // Update text immediately inside modal after toggle
+                 const updatedIsInWishlist = wishlist.some(item => item.id === bookId);
+                 wishlistText.textContent = updatedIsInWishlist ? 'Xóa khỏi Yêu thích' : 'Thêm vào Yêu thích';
+                 wishlistBtn.classList.toggle('active', updatedIsInWishlist); // Ensure class matches state
+                 wishlistBtn.classList.toggle('bg-pink-600', updatedIsInWishlist);
+                 wishlistBtn.classList.toggle('text-white', updatedIsInWishlist);
+                 wishlistBtn.classList.toggle('bg-pink-100', !updatedIsInWishlist);
+                 wishlistBtn.classList.toggle('text-pink-700', !updatedIsInWishlist);
+            };
+             // Set initial text and style for wishlist button in modal
+             wishlistText.textContent = isInWishlist ? 'Xóa khỏi Yêu thích' : 'Thêm vào Yêu thích';
+             wishlistBtn.classList.toggle('bg-pink-600', isInWishlist);
+             wishlistBtn.classList.toggle('text-white', isInWishlist);
+             wishlistBtn.classList.toggle('bg-pink-100', !isInWishlist);
+             wishlistBtn.classList.toggle('text-pink-700', !isInWishlist);
+
+
+            // Render reviews
+            renderReviews(bookId);
+
+            // Update "Add Review" button state based on login status
+            const addReviewButton = document.getElementById('add-review-button');
+            addReviewButton.disabled = !currentUser;
+            addReviewButton.title = currentUser ? 'Viết đánh giá của bạn' : 'Bạn cần đăng nhập để viết đánh giá';
+            if(!currentUser) {
+                addReviewButton.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                 addReviewButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            // Set book ID for review modal
+            document.getElementById('review-book-id').value = bookId;
+
+
+            openModal('bookDetailModal');
+            lucide.createIcons();
+        };
+
+        // --- CART FUNCTIONS ---
+
+        /**
+         * Adds a book to the cart or increases its quantity.
+         * @param {number} bookId - The ID of the book to add.
+         */
+        const addToCart = (bookId) => {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book || book.stock === 0) {
+                showToast('Sản phẩm này đã hết hàng!', 'warning');
+                return;
+            }
+
+            const existingItemIndex = cart.findIndex(item => item.id === bookId);
+
+            if (existingItemIndex > -1) {
+                // Check stock before increasing quantity
+                if (cart[existingItemIndex].quantity < book.stock) {
+                    cart[existingItemIndex].quantity++;
+                    showToast(`Đã cập nhật số lượng "${book.title}" trong giỏ hàng.`, 'success');
+                } else {
+                    showToast(`Số lượng "${book.title}" trong kho không đủ.`, 'warning');
+                    return; // Don't proceed if stock is insufficient
+                }
+            } else {
+                 // Check stock before adding new item
+                 if (1 <= book.stock) {
+                    cart.push({ ...book, quantity: 1 });
+                    showToast(`Đã thêm "${book.title}" vào giỏ hàng.`, 'success');
+                 } else {
+                     showToast(`Số lượng "${book.title}" trong kho không đủ.`, 'warning');
+                     return; // Don't add if stock is insufficient
+                 }
+            }
+
+            updateCartDisplay();
+            saveCartToLocalStorage();
+        };
+
+        /**
+         * Removes a book from the cart or decreases its quantity.
+         * @param {number} bookId - The ID of the book to remove.
+         * @param {boolean} removeAll - Whether to remove all quantities of the item.
+         */
+        const removeFromCart = (bookId, removeAll = false) => {
+            const itemIndex = cart.findIndex(item => item.id === bookId);
+            if (itemIndex === -1) return; // Item not in cart
+
+            const bookTitle = cart[itemIndex].title; // Get title before potentially removing
+
+            if (removeAll || cart[itemIndex].quantity <= 1) {
+                cart.splice(itemIndex, 1); // Remove item completely
+                 showToast(`Đã xóa "${bookTitle}" khỏi giỏ hàng.`, 'info');
+            } else {
+                cart[itemIndex].quantity--; // Decrease quantity
+                 showToast(`Đã giảm số lượng "${bookTitle}".`, 'info');
+            }
+
+            updateCartDisplay();
+            saveCartToLocalStorage();
+        };
+
+        /**
+         * Updates the quantity of an item in the cart.
+         * @param {number} bookId - The ID of the book.
+         * @param {number} newQuantity - The new quantity.
+         */
+        const updateCartQuantity = (bookId, newQuantity) => {
+            const itemIndex = cart.findIndex(item => item.id === bookId);
+            if (itemIndex === -1) return;
+
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return; // Should not happen if item is in cart
+
+            const quantity = parseInt(newQuantity, 10);
+
+            if (isNaN(quantity) || quantity < 1) {
+                // If invalid or less than 1, remove the item
+                removeFromCart(bookId, true);
+                showToast(`Số lượng không hợp lệ, đã xóa "${book.title}" khỏi giỏ.`, 'warning');
+            } else if (quantity > book.stock) {
+                // If requested quantity exceeds stock, set to max stock
+                cart[itemIndex].quantity = book.stock;
+                showToast(`Chỉ còn ${book.stock} "${book.title}" trong kho. Đã cập nhật số lượng.`, 'warning');
+                // Update the input field visually to reflect the change
+                const inputElement = document.querySelector(`#cart-item-${bookId} input`);
+                if(inputElement) inputElement.value = book.stock;
+            } else {
+                // Valid quantity within stock limits
+                cart[itemIndex].quantity = quantity;
+                 showToast(`Đã cập nhật số lượng "${book.title}".`, 'success');
+            }
+
+            updateCartDisplay();
+            saveCartToLocalStorage();
+        };
+
+
+        /**
+         * Calculates the total price of items in the cart.
+         * @returns {number} The total price.
+         */
+        const calculateCartTotal = () => {
+            return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+        };
+
+        /**
+         * Updates the cart display (sidebar and header count).
+         */
+        const updateCartDisplay = () => {
+            const cartItemsElement = document.getElementById('cart-items');
+            const cartTotalElement = document.getElementById('cart-total');
+            const cartCountElement = document.getElementById('cart-count');
+            const cartItemCountHeader = document.getElementById('cart-item-count-header');
+            const emptyCartMessage = cartItemsElement?.querySelector('.cart-empty-message');
+            const checkoutButton = document.getElementById('checkout-button');
+
+            if (!cartItemsElement || !cartTotalElement || !cartCountElement || !cartItemCountHeader || !checkoutButton) return;
+
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+            // Update header count badge
+            cartCountElement.textContent = totalItems;
+             cartCountElement.classList.toggle('opacity-0', totalItems === 0); // Show/hide badge
+             cartCountElement.classList.toggle('animate-pulse', totalItems > 0); // Add pulse animation if items exist
+
+
+            // Update sidebar item count
+            cartItemCountHeader.textContent = totalItems;
+
+            if (cart.length === 0) {
+                cartItemsElement.innerHTML = ''; // Clear items if any
+                emptyCartMessage?.classList.remove('hidden'); // Show empty message
+                cartTotalElement.textContent = formatCurrency(0);
+                checkoutButton.disabled = true;
+                 checkoutButton.classList.add('opacity-60', 'cursor-not-allowed');
+            } else {
+                emptyCartMessage?.classList.add('hidden'); // Hide empty message
+                cartItemsElement.innerHTML = cart.map(item => `
+                    <div id="cart-item-${item.id}" class="flex items-center justify-between gap-4 py-4 border-b border-slate-200 last:border-b-0">
+                        <img src="${item.img}" alt="${item.title}" class="w-16 h-20 object-cover rounded-md shadow-sm flex-shrink-0" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/64x80/e2e8f0/94a3b8?text=Ảnh+lỗi';">
+                        <div class="flex-grow min-w-0">
+                            <p class="font-medium text-sm truncate text-slate-800">${item.title}</p>
+                            <p class="text-xs text-slate-500 mb-1">${item.author}</p>
+                            <p class="text-sm font-semibold text-indigo-600">${formatCurrency(item.price)}</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                             <input
+                                type="number"
+                                value="${item.quantity}"
+                                min="1"
+                                max="${item.stock}"
+                                onchange="updateCartQuantity(${item.id}, this.value)"
+                                class="w-14 px-2 py-1 border border-slate-300 rounded-md text-center text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                aria-label="Số lượng ${item.title}"
+                            >
+                            <button onclick="removeFromCart(${item.id}, true)" class="text-red-500 hover:text-red-700 p-1 transition" aria-label="Xóa ${item.title} khỏi giỏ hàng">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                const total = calculateCartTotal();
+                cartTotalElement.textContent = formatCurrency(total);
+                checkoutButton.disabled = false;
+                checkoutButton.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+            lucide.createIcons(); // Re-render icons in cart
+        };
+
+        /**
+         * Toggles the cart sidebar visibility.
+         */
+        const toggleCart = () => {
+            const cartSidebar = document.getElementById('cart-sidebar');
+            if (!cartSidebar) return;
+
+            const isVisible = cartSidebar.classList.contains('sidebar-visible');
+            if (isVisible) {
+                cartSidebar.classList.add('sidebar-hidden', 'overlay-hidden');
+                cartSidebar.classList.remove('sidebar-visible', 'overlay-visible');
+                 // Check if any other modals/sidebars are open before restoring scroll
+                 const otherOpenModals = document.querySelectorAll('.modal-visible, .sidebar-visible');
+                 if (otherOpenModals.length === 0) {
+                    document.body.style.overflow = ''; // Restore scroll only if no other modals/sidebars are open
+                 }
+                 document.removeEventListener('keydown', handleEscKey);
+            } else {
+                updateCartDisplay(); // Ensure cart is updated before showing
+                cartSidebar.classList.remove('sidebar-hidden', 'overlay-hidden');
+                cartSidebar.classList.add('sidebar-visible', 'overlay-visible');
+                document.body.style.overflow = 'hidden'; // Prevent background scroll
+                 // Focus first focusable element in sidebar for accessibility
+                 const focusableElements = cartSidebar.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                 if(focusableElements.length > 0) {
+                     // Try focusing the checkout button first if it's enabled, otherwise the close button
+                     const checkoutBtn = cartSidebar.querySelector('#checkout-button:not(:disabled)');
+                     if (checkoutBtn) {
+                         checkoutBtn.focus();
+                     } else {
+                         cartSidebar.querySelector('button[onclick="toggleCart()"]')?.focus();
+                     }
+                 }
+                 document.addEventListener('keydown', handleEscKey);
+            }
+        };
+
+        /**
+         * Saves the current cart state to Local Storage.
+         */
+        const saveCartToLocalStorage = () => {
+            saveToLocalStorage('sachHayAppCart', cart);
+        };
+
+        /**
+         * Loads the cart state from Local Storage.
+         */
+        const loadCartFromLocalStorage = () => {
+            cart = loadFromLocalStorage('sachHayAppCart', []);
+            // Validate cart items against current allBooks data (prices, stock might change)
+             cart = cart.map(cartItem => {
+                 const bookData = allBooks.find(book => book.id === cartItem.id);
+                 if (!bookData) return null; // Remove item if book no longer exists
+                 // Update price from current data, keep quantity but cap at current stock
+                 return {
+                     ...bookData, // Use fresh book data
+                     quantity: Math.min(cartItem.quantity, bookData.stock) // Ensure quantity doesn't exceed stock
+                 };
+             }).filter(item => item !== null && item.quantity > 0); // Filter out nulls and items with 0 quantity after stock check
+
+            updateCartDisplay();
+            saveCartToLocalStorage(); // Save potentially cleaned cart back
+        };
+
+        // --- WISHLIST FUNCTIONS ---
+
+        /**
+         * Toggles a book in/out of the wishlist.
+         * @param {number} bookId - The ID of the book.
+         * @param {HTMLElement | null} buttonElement - The button element clicked (optional, for immediate UI update).
+         */
+        const toggleWishlist = (bookId, buttonElement = null) => {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+
+            const itemIndex = wishlist.findIndex(item => item.id === bookId);
+
+            if (itemIndex > -1) {
+                wishlist.splice(itemIndex, 1); // Remove from wishlist
+                showToast(`Đã xóa "${book.title}" khỏi danh sách yêu thích.`, 'info');
+                if (buttonElement) {
+                    buttonElement.classList.remove('active');
+                    buttonElement.title = 'Thêm vào Yêu thích';
+                    buttonElement.setAttribute('aria-label', 'Thêm vào Yêu thích');
+                    // Update icon fill directly if needed (though class 'active' handles it)
+                     const icon = buttonElement.querySelector('i');
+                     if (icon) icon.style.fill = 'none';
+                }
+            } else {
+                wishlist.push(book); // Add to wishlist
+                showToast(`Đã thêm "${book.title}" vào danh sách yêu thích!`, 'success', 2000); // Shorter duration for positive feedback
+                 if (buttonElement) {
+                    buttonElement.classList.add('active');
+                    buttonElement.title = 'Xóa khỏi Yêu thích';
+                    buttonElement.setAttribute('aria-label', 'Xóa khỏi Yêu thích');
+                     // Update icon fill directly if needed
+                     const icon = buttonElement.querySelector('i');
+                     if (icon) icon.style.fill = 'currentColor'; // Use current color defined by CSS .active
+                }
+            }
+
+            updateWishlistDisplay();
+            saveWishlistToLocalStorage();
+
+            // Update the corresponding book card button state if it exists on the page
+            const bookCardButton = document.querySelector(`#book-list [onclick*="toggleWishlist(${bookId}"]`);
+             if (bookCardButton && bookCardButton !== buttonElement) {
+                 bookCardButton.classList.toggle('active', itemIndex === -1); // Add active if item was added, remove if removed
+                 bookCardButton.title = itemIndex === -1 ? 'Xóa khỏi Yêu thích' : 'Thêm vào Yêu thích';
+                 bookCardButton.setAttribute('aria-label', itemIndex === -1 ? 'Xóa khỏi Yêu thích' : 'Thêm vào Yêu thích');
+                 const icon = bookCardButton.querySelector('i');
+                 if (icon) icon.style.fill = itemIndex === -1 ? 'currentColor' : 'none';
+             }
+            // Also update button in modal if it's open and different from the clicked one
+            const modalButton = document.querySelector(`#bookDetailModal [onclick*="toggleWishlist(${bookId}"]`);
+             if (modalButton && modalButton !== buttonElement) {
+                 modalButton.classList.toggle('active', itemIndex === -1);
+                 modalButton.classList.toggle('bg-pink-600', itemIndex === -1);
+                 modalButton.classList.toggle('text-white', itemIndex === -1);
+                 modalButton.classList.toggle('bg-pink-100', itemIndex > -1);
+                 modalButton.classList.toggle('text-pink-700', itemIndex > -1);
+                 const modalButtonText = modalButton.querySelector('#modal-wishlist-text');
+                 if(modalButtonText) modalButtonText.textContent = itemIndex === -1 ? 'Xóa khỏi Yêu thích' : 'Thêm vào Yêu thích';
+             }
+        };
+
+        /**
+         * Updates the wishlist display (modal and header count).
+         */
+        const updateWishlistDisplay = () => {
+            const wishlistItemsElement = document.getElementById('wishlist-items');
+            const wishlistCountElement = document.getElementById('wishlist-count');
+            const wishlistItemCountHeader = document.getElementById('wishlist-item-count-header');
+            const emptyWishlistMessage = wishlistItemsElement?.querySelector('.wishlist-empty-message');
+
+            if (!wishlistItemsElement || !wishlistCountElement || !wishlistItemCountHeader) return;
+
+            const totalItems = wishlist.length;
+
+            // Update header count badge
+            wishlistCountElement.textContent = totalItems;
+            wishlistCountElement.classList.toggle('opacity-0', totalItems === 0);
+            wishlistCountElement.classList.toggle('animate-pulse', totalItems > 0);
+
+            // Update modal item count
+            wishlistItemCountHeader.textContent = totalItems;
+
+            if (totalItems === 0) {
+                 wishlistItemsElement.innerHTML = ''; // Clear items if any
+                emptyWishlistMessage?.classList.remove('hidden');
+            } else {
+                emptyWishlistMessage?.classList.add('hidden');
+                wishlistItemsElement.innerHTML = wishlist.map(item => `
+                    <div class="flex items-center justify-between gap-4 py-3 border-b border-slate-200 last:border-b-0">
+                        <img src="${item.img}" alt="${item.title}" class="w-12 h-16 object-cover rounded-md shadow-sm flex-shrink-0" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/48x64/e2e8f0/94a3b8?text=Ảnh+lỗi';">
+                        <div class="flex-grow min-w-0">
+                            <p class="font-medium text-sm truncate text-slate-800 hover:text-indigo-600 cursor-pointer" onclick="closeModal('wishlistModal'); openBookDetail(${item.id});">${item.title}</p>
+                            <p class="text-xs text-slate-500 mb-1">${item.author}</p>
+                            <p class="text-sm font-semibold text-red-600">${formatCurrency(item.price)}</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                             <button
+                                onclick="addToCart(${item.id}); toggleWishlist(${item.id}); updateWishlistDisplay();"
+                                class="text-indigo-600 hover:text-indigo-800 p-1.5 rounded-full hover:bg-indigo-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Thêm vào giỏ hàng"
+                                aria-label="Thêm ${item.title} vào giỏ hàng"
+                                ${item.stock === 0 ? 'disabled' : ''}
+                                >
+                                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="toggleWishlist(${item.id}); updateWishlistDisplay();" class="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-100 transition" title="Xóa khỏi yêu thích" aria-label="Xóa ${item.title} khỏi yêu thích">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        };
+
+        /**
+         * Toggles the wishlist modal visibility.
+         */
+        const toggleWishlistModal = () => {
+            const wishlistModal = document.getElementById('wishlistModal');
+            if (!wishlistModal) return;
+
+            const isVisible = wishlistModal.classList.contains('modal-visible');
+            if (isVisible) {
+                closeModal('wishlistModal');
+            } else {
+                 updateWishlistDisplay(); // Ensure content is up-to-date
+                 openModal('wishlistModal');
+                 // Focus first focusable element (likely the close button or first remove button)
+                 const focusableElements = wishlistModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                 if (focusableElements.length > 0) {
+                    // Try focusing the first remove button if items exist, otherwise the close button
+                    const firstRemoveBtn = wishlistModal.querySelector('.flex-shrink-0 button[onclick*="toggleWishlist"]');
+                    if (firstRemoveBtn) {
+                        firstRemoveBtn.focus();
+                    } else {
+                         wishlistModal.querySelector('button[onclick="toggleWishlistModal()"]')?.focus();
+                    }
+                 }
+            }
+        };
+
+
+        /**
+         * Saves the current wishlist state to Local Storage.
+         */
+        const saveWishlistToLocalStorage = () => {
+            saveToLocalStorage('sachHayAppWishlist', wishlist);
+        };
+
+        /**
+         * Loads the wishlist state from Local Storage.
+         */
+        const loadWishlistFromLocalStorage = () => {
+            wishlist = loadFromLocalStorage('sachHayAppWishlist', []);
+             // Optional: Validate wishlist items against current allBooks data
+             wishlist = wishlist.map(wishlistItem => {
+                 const bookData = allBooks.find(book => book.id === wishlistItem.id);
+                 return bookData ? bookData : null; // Return full book data if exists, else null
+             }).filter(item => item !== null); // Remove items for books that no longer exist
+
+            updateWishlistDisplay();
+            saveWishlistToLocalStorage(); // Save potentially cleaned list back
+        };
+
+
+        // --- USER AUTHENTICATION FUNCTIONS (SIMULATED) ---
+
+        /**
+         * Updates the UI based on login status.
+         */
+        const updateUserDisplay = () => {
+            const loggedOutView = document.getElementById('logged-out-view');
+            const loggedInView = document.getElementById('logged-in-view');
+            const usernameDisplay = document.getElementById('username-display');
+            const addReviewButton = document.getElementById('add-review-button');
+            const challengeLoggedOut = document.getElementById('challenge-logged-out');
+            const challengeLoggedIn = document.getElementById('challenge-logged-in');
+            const profileChallengeSummary = document.getElementById('profile-challenge-summary');
+
+
+            if (currentUser) {
+                loggedOutView?.classList.add('hidden');
+                loggedInView?.classList.remove('hidden');
+                if (usernameDisplay) usernameDisplay.textContent = currentUser.name;
+                // Enable review button if it exists
+                if (addReviewButton) {
+                    addReviewButton.disabled = false;
+                    addReviewButton.title = 'Viết đánh giá của bạn';
+                    addReviewButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                // Show logged-in view for reading challenge
+                challengeLoggedOut?.classList.add('hidden');
+                challengeLoggedIn?.classList.remove('hidden');
+                updateReadingChallengeDisplay(); // Update challenge display specifically
+                // Update profile modal challenge summary
+                 if (profileChallengeSummary) {
+                     profileChallengeSummary.querySelector('.challenge-not-set')?.classList.add('hidden');
+                     profileChallengeSummary.querySelector('.challenge-details')?.classList.remove('hidden');
+                     updateProfileChallengeSummary();
+                 }
+
+            } else {
+                loggedOutView?.classList.remove('hidden');
+                loggedInView?.classList.add('hidden');
+                if (usernameDisplay) usernameDisplay.textContent = 'User';
+                 // Disable review button if it exists
+                if (addReviewButton) {
+                    addReviewButton.disabled = true;
+                    addReviewButton.title = 'Bạn cần đăng nhập để viết đánh giá';
+                    addReviewButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+                 // Show logged-out view for reading challenge
+                 challengeLoggedOut?.classList.remove('hidden');
+                 challengeLoggedIn?.classList.add('hidden');
+                 // Update profile modal challenge summary
+                 if (profileChallengeSummary) {
+                     profileChallengeSummary.querySelector('.challenge-not-
